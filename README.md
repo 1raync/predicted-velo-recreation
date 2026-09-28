@@ -11,8 +11,7 @@ A recreation of the **Predicted Pitch Velocity** model by [Driveline Baseball (2
 
 *What the strength tests can't show: how the delivery loads the arm. These two college right-handers from OBP's
 separate pitching-biomechanics dataset (different athletes from A and B) throw the same speed (85.7 mph) and are
-matched on size, but the left pitcher's elbow varus moment has 23 Nm more load than expected for their velo and size (129 vs 86 Nm) and lays back 20° less (161° vs 181°). Each is shown at max layback, with the throwing arm in color. See
-[Beyond the tests](#beyond-the-tests-elbow-stress-beyond-expected).*
+matched on size, but the left pitcher's elbow varus moment is 23 Nm higher than expected for their velo and size (129 vs 86 Nm), and they lay back 20° less (161° vs 181°). Each is shown at max layback, with the throwing arm in color. See [Beyond the tests](#beyond-the-tests-elbow-stress-beyond-expected).*
 
 ## TL;DR
 
