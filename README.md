@@ -4,12 +4,16 @@ A recreation of the **Predicted Pitch Velocity** model by [Driveline Baseball (2
 
 ![Two athletes with the same velo but opposite gaps](figures/two_athlete_gap.png)
 
-*Athletes A and B are high schoolers who both throw ~78 mph. Based on A's force plate/strength tests, the model predicts a 71 mph pitch, while A actually throws 6.9 mph above that. B scores in the 94th–99th percentile on every force test, with a prediceted 88 mph pitch, but B throws 10.4 mph below. The pair is purely demonstrative, of how this model can guide weight room vs mechanics training. A who is ≥ 6 mph above what their strength says their mph "should" be, could benefit from more S&C, while B in the top 25% of predictions and ≥ 6 mph below it could benefit with mechanics changes.
+*Athletes A and B are high schoolers who both throw ~78 mph. Based on A's force plate/strength tests, the model predicts a 71 mph pitch, while A actually throws 6.9 mph above that. B scores in the 94th–99th percentile on every force test, with a predicted 88 mph pitch, but B throws 10.4 mph below. The pair is purely demonstrative, of how this model can guide weight room vs mechanics training. A who is ≥ 6 mph above what their strength says their mph "should" be, could benefit from more S&C, while B in the top 25% of predictions and ≥ 6 mph below it could benefit with mechanics changes.
 ([`src/fig_two_athletes.py`](src/fig_two_athletes.py)).*
 
-![Two pitchers of the same height, 15 mph apart, at peak lead-leg force](figures/lead_leg_models.png)
+![Two pitchers matched on velo and size, with very different elbow load, at max layback](figures/elbow_models.png)
 
-[Beyond the tests](#beyond-the-tests-the-lead-leg-block).*
+*What the strength tests can't show: how the delivery loads the arm. These two college right-handers from OBP's
+separate pitching-biomechanics dataset (different athletes from A and B) throw the same speed (85.7 mph) and are
+matched on size, but the left pitcher's elbow carries 23 Nm more load than expected for their velo and size (129 vs
+86 Nm) and lays back 20° less (161° vs 181°). Each is shown at max layback, with the throwing arm in color. See
+[Beyond the tests](#beyond-the-tests-elbow-stress-beyond-expected).*
 
 ## TL;DR
 
@@ -19,10 +23,14 @@ A recreation of the **Predicted Pitch Velocity** model by [Driveline Baseball (2
 | Mean absolute error | 2.7 mph | 3.98 mph | 3.82 mph |
 | Athletes | not reported | 541 | 541 |
 
+**The velo model (main project)**
 - **Squat-jump peak power is the dominant input**, consistent with Driveline's statement that it is the metric most correlated with pitch velocity.
 - **Relative (per-kg) strength makes predictions worse.** Held-out R² falls to 0.29 when both power and strength are divided by bodyweight.
 - **Adding bodyweight as a curve helps.** It beats the baseline in 96% of cross-validation fits (partial F(2,534) = 17.6, p = 4×10⁻⁸). At equal strength, heavier athletes throw harder up to about 212 lb, then the effect levels off.
-- **Beyond the tests:** in OBP's separate biomechanics cohort (100 pitchers), a harder front-leg "block" goes with higher velo (peak lead-leg force vs velo, r = 0.36).
+
+**Secondary: elbow stress beyond expected** (OBP's separate biomechanics dataset, 100 pitchers)
+- **Pitchers whose elbow load runs above what their velo and size predict lay back *less*, not more:** 164° vs 174° (partial r = −0.46). It's lower through the whole cocking phase, not just at the peak (spm1d), and lower in all 13 tightly matched pairs.
+- **They also stride straighter and rotate further by release** (−0.1° vs +4.7° cross-body; 123° vs 116°). Hip-shoulder separation and pelvis-to-torso timing don't differ.
 
 ## Background
 
@@ -34,6 +42,8 @@ I loved Driveline's idea: that fitness tests can model the pitching velo an athl
 | Countermovement Jump (CMJ) | RSI-modified | Jump height ÷ time to take off |
 | 10/5 Hop test | RSI (flight ÷ contact time) | Reactive "springiness" |
 | Isometric Mid-Thigh Pull (IMTP) | Net peak force (N) | Maximal pulling strength |
+
+The gap also raised a second question for me. It finds athletes who throw below prediction to push toward mechanics work, but mechanics change more than speed: they change how much load the arm has to absorb. Two pitchers can throw the same velo while their elbows carry very different loads. The strength-test data can't see that, but OBP's separate pitching-biomechanics dataset can, with full motion capture for 100 pitchers. So, as a smaller side project, I asked which pitchers load their elbow more than their velo and size predict, and what their deliveries have in common.
 
 ## Data
 
@@ -47,10 +57,10 @@ I loved Driveline's idea: that fitness tests can model the pitching velo an athl
   - Dropped velo < 60 mph (includes 0-mph placeholders).
   - Dropped one physically implausible RSI-mod value.
   - Kept each athlete's **first test only**, so no athlete appears twice.
-- **Pitching biomechanics (lead-leg section only):** OBP `baseball_pitching` summary metrics at the same commit, plus
-  force-plate (1,080 Hz), joint-position and joint-velocity (360 Hz) tables and the raw C3D files (45 markers at
-  360 Hz, 3 force plates at 1,080 Hz) from the `dataset-v1` release, all checksum-verified. 100 pitchers, 411 pitches;
-  8 pitches with no force-plate data are dropped (→ 403).
+- **Pitching biomechanics ("Beyond the tests" only):** OBP `baseball_pitching` summary metrics at the same commit,
+  plus joint-position and joint-angle tables (360 Hz) and the raw C3D files (45 markers at 360 Hz) from the `dataset-v1` release, all
+  checksum-verified. 100 pitchers, 411 fastballs; 4 pitches with broken event timing (foot plant after release, or
+  more than 0.4 s before it) are dropped (→ 407).
   **These are different athletes.** OBP states that the two datasets use different IDs and provides no link between them.
 - **Column note:** OBP includes two hop-test RSI columns. This project uses the flight-time/contact-time ratio,
   which is Driveline's definition. The `jump_height/contact_time` column is a different metric with a different scale.
@@ -65,16 +75,18 @@ I loved Driveline's idea: that fitness tests can model the pitching velo an athl
 - **Inference:** overall and partial F-tests, checked with HC3 heteroscedasticity-robust errors, Breusch-Pagan,
   Shapiro-Wilk and Cook's distance.
 - **Bodyweight curve uncertainty:** 1,000 bootstrap refits resampling athletes.
-- **Lead-leg block:** one row per pitcher (pitches averaged), Pearson r with 2,000-resample bootstrap CI, Spearman as a
-  check. Force is shown in the lab frame (+x toward home). OBP stores braking as +x, so the ground's push on the front
-  foot is drawn as (−Fx, +Fy, +Fz). I confirmed this against center-of-mass acceleration from motion capture and
-  against the raw C3D plate forces, and the recomputed force angles match OBP's exactly. Signals are used as OBP
-  provides them, with no further filtering or resampling. OBP had already low-pass filtered them (4th-order
-  Butterworth: 20 Hz for joint signals, 40 Hz for force).
-- **3D renders:** made with pyvista (VTK) from the raw C3D markers and OBP's model joint centers at the frame of peak
-  lead-leg force, drawn as a stick skeleton through the joint centers. The force arrow starts at the center of pressure from the raw plates
-  (weighted by vertical force when the foot straddles two plates). Checks built into the code: C3D markers vs model
-  joint centers (≤ 0.5 mm) and raw plate sum vs processed peak force (≤ 0.2%).
+- **Elbow stress beyond expected:** one row per pitcher (pitches averaged). Peak elbow varus moment is regressed on
+  velo, mass and height (OLS, R² = 0.51), and the residual is split into top vs bottom thirds. Groups are compared on
+  all 75 other OBP summary metrics with Cohen's d, a 5,000-permutation test (seed 0) and Benjamini-Hochberg FDR.
+  Layback is also tested as a partial correlation adjusted for velo, mass and height. The whole layback curve is
+  compared with [spm1d](https://spm1d.org), a two-sample t-test corrected over time with random field theory. The
+  window is −300 to +90 ms around release; each pitch is linearly interpolated onto one 360 Hz grid aligned to
+  release, then averaged per pitcher.
+- **3D renders:** made with pyvista (VTK) from the raw C3D markers and OBP's model joint centers at max layback, drawn
+  as a stick skeleton through the joint centers, with the throwing arm in color. Joint centers are used as OBP
+  provides them (already low-pass filtered by OBP: 4th-order Butterworth, 20 Hz). Each pitcher is shown with their
+  pitch closest to their own median elbow load. Built-in check: the raw elbow markers sit within 0.3 mm of the model
+  elbow joint center.
 
 ## Results
 
@@ -104,26 +116,40 @@ past the peak the bootstrap band is wide enough to fit a flat curve, and only 5%
 ### F-tests
 All four Driveline inputs remain significant in the final model (all p < 0.05, including with robust errors).
 
-### Beyond the tests: the lead-leg block
-The two pitchers are shown under the headline figure. The full figure, with force over time and the cohort scatter,
-is [`figures/lead_leg_block.png`](figures/lead_leg_block.png).
+### Beyond the tests: elbow stress beyond expected
+Force-plate tests measure capacity. They don't show how the delivery loads the arm. In OBP's separate pitching
+dataset (100 pitchers), I looked for pitchers whose elbow carries more load than their velo and size predict.
 
-Force-plate tests measure the capacity an athlete has. They don't show how that capacity gets used on the mound.
-OBP's separate pitching dataset shows one piece of that. Across 100 pitchers, peak lead-leg ground reaction force
-(in bodyweights) tracks velo: **r = 0.36 (95% CI 0.19–0.51)**. It holds in raw newtons after controlling for body mass
-(partial r = 0.39). The rear leg shows no clear relationship (r = 0.16, CI crosses 0).
+- **Metric:** peak elbow varus moment, the load on the inside of the elbow that the UCL resists, minus what velo, mass
+  and height predict. The top and bottom thirds give 34 vs 34 pitchers who are matched on velo (84.7 vs 84.2 mph),
+  mass (92 vs 91 kg), height (1.86 m) and age (21.3 yr), but differ by 30 Nm in elbow load (128 vs 98 Nm).
+- **What differs:** 6 of 75 metrics survive FDR correction (q < 0.05):
 
-The two pitchers drawn are college right-handers of the same height (1.85 m), 4 kg apart and 15 mph apart. They were
-selected on level, handedness, mass, height and velo only, not on force. The 94-mph pitcher's front leg pushes harder
-(2.38 vs 2.18× bodyweight), more horizontally (55° vs 64° above horizontal) and earlier (44 vs 26 ms before release).
-By release it has dropped to 1.50×, while the 79-mph pitcher is still near peak (2.10×).
+| Metric | High stress | Low stress | Cohen's d |
+|---|---|---|---|
+| Max layback (shoulder external rotation) | 164° | 174° | −1.11 |
+| Stride angle (+ = cross-body) | −0.1° | +4.7° | −0.92 |
+| Torso rotation at release | 123° | 116° | +0.89 |
+| Max elbow extension velocity | 2,574 °/s | 2,372 °/s | +0.96 |
+| Shoulder energy absorbed, foot plant to release | 31 J | 16 J | +1.11 |
+| Shoulder internal rotation moment\* | 121 Nm | 95 Nm | +1.72 |
 
-Caveats: these are not the athletes in the headline figure. r = 0.36 means lead-leg force accounts for about 13% of
-the velo differences between pitchers. One pair is an illustration, not evidence.
+\*Computed from the same arm model as the elbow load, so this one is partly circular.
+
+- **The surprise is layback:** less layback, not more, goes with extra elbow load. The partial r is −0.46 after
+  adjusting for velo, mass and height. In all 13 tightly matched right-handed high/low pairs, the higher-stress
+  pitcher lays back less. It isn't only the peak: an spm1d test on the whole layback curve finds it lower in the
+  high-stress group from 144 ms before release through 32 ms after (one significant cluster, p < 10⁻¹³). The two
+  pitchers under the headline figure are the pair with the largest gap.
+- **No clear difference:** hip-shoulder separation or pelvis-to-torso timing.
+
+Caveats: these are not the athletes in the headline figure. Elbow moment is a model-based load estimate, not an
+injury, and OBP has no injury outcomes. The groups are 34 vs 34, mostly college fastballs from one lab. Reasons *why*
+less layback goes with more elbow load are hypotheses, not tested here.
 
 Full tables: [`results/01_baseline.md`](results/01_baseline.md),
 [`results/02_f_tests.md`](results/02_f_tests.md), [`results/03_bodyweight.md`](results/03_bodyweight.md),
-[`results/04_lead_leg_block.md`](results/04_lead_leg_block.md).
+[`results/05_elbow_stress.md`](results/05_elbow_stress.md).
 
 ### Why the recreation scores lower than Driveline's published model
 Likely reasons, none of which can be confirmed from public information:
@@ -147,7 +173,7 @@ Likely reasons, none of which can be confirmed from public information:
 git clone https://github.com/1raync/predicted-velo-recreation.git
 cd predicted-velo-recreation
 pip install -r requirements.txt
-python run_all.py        # downloads ~275 MB of OBP data, writes results/ and figures/ (~2-3 min)
+python run_all.py        # downloads ~310 MB of OBP data, writes results/ and figures/ (~2-3 min)
 ```
 
 ## Attribution & licenses

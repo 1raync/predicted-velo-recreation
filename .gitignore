@@ -5,3 +5,5 @@ __pycache__/
 .ipynb_checkpoints/
 .DS_Store
 .venv/
+# local analysis workspace (LLM-facing notes); its results are reproduced by src/s05_elbow_stress.py
+elbow_stress_split/

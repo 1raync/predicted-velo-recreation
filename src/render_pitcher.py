@@ -45,11 +45,15 @@ def arrow(p, start, vec, length, color):
                         shaft_radius=0.03), color=color, ambient=0.4, smooth_shading=True)
 
 
-def render(tag, accent, size=(1100, 1100)):
-    info = pd.read_csv(DER / "pitch_pair_info.csv").set_index("tag").loc[tag]
-    frame = pd.read_csv(DER / "pitch_pair_frames.csv").set_index("tag").loc[tag]
-    mk = pd.read_csv(DER / "pitch_pair_markers.csv").query("tag == @tag").set_index("label")
-    plates = pd.read_csv(DER / "pitch_pair_plates.csv").query("tag == @tag")
+ARM = [("shoulder_jc", "elbow_jc"), ("elbow_jc", "wrist_jc"), ("wrist_jc", "hand_jc")]   # throwing arm
+
+
+def render(tag, accent, size=(1100, 1100), pair="pitch_pair", force=True, arm=False):
+    """pair: prefix of the data/derived files. force: draw the lead-leg force arrow. arm: throwing arm in accent."""
+    info = pd.read_csv(DER / f"{pair}_info.csv").set_index("tag").loc[tag]
+    frame = pd.read_csv(DER / f"{pair}_frames.csv").set_index("tag").loc[tag]
+    mk = pd.read_csv(DER / f"{pair}_markers.csv").query("tag == @tag").set_index("label")
+    plates = pd.read_csv(DER / f"{pair}_plates.csv").query("tag == @tag")
     J = points(frame, mk)
 
     p = pv.Plotter(off_screen=True, window_size=size)
@@ -67,18 +71,20 @@ def render(tag, accent, size=(1100, 1100)):
         arrow(p, np.zeros(3), v, 0.35, c)
 
     for a, b in BONES:
-        p.add_mesh(pv.Tube(pointa=J[a], pointb=J[b], radius=BONE_R, n_sides=12), color=BONE, ambient=0.3,
-                   smooth_shading=True)
+        hl = arm and (a, b) in ARM
+        p.add_mesh(pv.Tube(pointa=J[a], pointb=J[b], radius=BONE_R * (2.2 if hl else 1), n_sides=12),
+                   color=accent if hl else BONE, ambient=0.4 if hl else 0.3, smooth_shading=True)
     for n in JOINTS:
         p.add_mesh(pv.Sphere(radius=JOINT_R, center=J[n]), color=accent, ambient=0.3, smooth_shading=True)
     for m in mk.index:
         p.add_mesh(pv.Sphere(radius=MARKER_R, center=J[m]), color=MARKER, ambient=0.5, smooth_shading=True)
 
-    cop = info[["cop_x", "cop_y", "cop_z"]].values.astype(float)
-    vec = info[["gx_bw", "gy_bw", "gz_bw"]].values.astype(float)
-    arrow(p, cop, vec, np.linalg.norm(vec) * M_PER_BW, accent)
-    ref = np.array([cop[0] + 0.55, cop[1] + 0.45, floor_z])      # 1x bodyweight reference arrow, vertical
-    arrow(p, ref, (0, 0, 1), M_PER_BW, "#c9ccd0")
+    if force:
+        cop = info[["cop_x", "cop_y", "cop_z"]].values.astype(float)
+        vec = info[["gx_bw", "gy_bw", "gz_bw"]].values.astype(float)
+        arrow(p, cop, vec, np.linalg.norm(vec) * M_PER_BW, accent)
+        ref = np.array([cop[0] + 0.55, cop[1] + 0.45, floor_z])      # 1x bodyweight reference arrow, vertical
+        arrow(p, ref, (0, 0, 1), M_PER_BW, "#c9ccd0")
     p.camera_position = CAMERA
     p.camera.view_angle = 25
     p.enable_anti_aliasing("ssaa")

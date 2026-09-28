@@ -12,15 +12,17 @@ FILES = {  # local path under data/ -> source URL
     "data_dictionary.csv": RAW_URL + "high_performance/data/data_dictionary.csv",
     "pitching/metadata.csv": RAW_URL + "baseball_pitching/data/metadata.csv",
     "pitching/poi_metrics.csv": RAW_URL + "baseball_pitching/data/poi/poi_metrics.csv",
-    # full-signal tables and raw C3D files live on the dataset-v1 release (~274 MB zipped)
+    # full-signal tables and raw C3D files live on the dataset-v1 release (~310 MB zipped)
     "pitching/force_plate.zip": REL_URL + "pitching_force_plate.zip",
     "pitching/landmarks.zip": REL_URL + "pitching_landmarks.zip",
     "pitching/joint_velos.zip": REL_URL + "pitching_joint_velos.zip",
     "pitching/c3d.zip": REL_URL + "pitching_c3d.zip",
+    "pitching/joint_angles.zip": REL_URL + "pitching_joint_angles.zip",
 }
 # from scripts/release_checksums.sha256 at the pinned commit
 SHA256 = {
     "pitching/c3d.zip": "2f5277dc63c7f7535fa4b15310d6f38b3f3b761e572896eec529854c8c920d29",
+    "pitching/joint_angles.zip": "b4c4854ffcc52a0f757e0b3a3c86acdc4a2fc2e50516a76e62aabdb916afed46",
     "pitching/force_plate.zip": "f36a1722e23101be2387acc8f91ec38d2ee5d640388f688af7fd8fa52eef29ed",
     "pitching/landmarks.zip": "efcc078d5d8e77ed1fbf0b9f6a78f750c57a624165f71f30e34142b74db7ec22",
     "pitching/joint_velos.zip": "5752f571b40acc4f02afc42dcfdb4b9eb191fcffd5fb25bc3c585e149941fb69",
