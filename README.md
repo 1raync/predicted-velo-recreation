@@ -1,14 +1,15 @@
-# Driveline's OBP: Predicting Pitch Velocity from Force-Plate Tests: an Independent Recreation
+# Predicting Pitch Velocity from Force-Plate Tests: an Independent Recreation
 
-An independent recreation of the **Predicted Pitch Velocity** model described by
-[Driveline Baseball (2021)](https://drivelinebaseball.com/blogs/blog/predicted-pitch-velocity),
-rebuilt from scratch on the public
-[OpenBiomechanics Project](https://github.com/drivelineresearch/openbiomechanics) (OBP)
-High Performance dataset, plus one extension: **how bodyweight should (and shouldn't) enter the model.**
+A recreation of the **Predicted Pitch Velocity** model by [Driveline Baseball (2021)](https://drivelinebaseball.com/blogs/blog/predicted-pitch-velocity), rebuilt on the public [OpenBiomechanics Project](https://github.com/drivelineresearch/openbiomechanics) (OBP) High Performance dataset.
 
-> Personal, non-commercial project. Not affiliated with or endorsed by Driveline Baseball.
+![Two athletes with the same velo but opposite gaps](figures/two_athlete_gap.png)
 
-![Two athletes with the same predicted velo but opposite gaps](figures/two_athlete_gap.png)
+*Athletes A and B are high schoolers who both throw ~78 mph. Based on A's force plate/strength tests, the model predicts a 71 mph pitch, while A actually throws 6.9 mph above that. B scores in the 94th–99th percentile on every force test, with a prediceted 88 mph pitch, but B throws 10.4 mph below. The pair is purely demonstrative, of how this model can guide weight room vs mechanics training. A who is ≥ 6 mph above what their strength says their mph "should" be, could benefit from more S&C, while B in the top 25% of predictions and ≥ 6 mph below it could benefit with mechanics changes.
+([`src/fig_two_athletes.py`](src/fig_two_athletes.py)).*
+
+![Two pitchers of the same height, 15 mph apart, at peak lead-leg force](figures/lead_leg_models.png)
+
+[Beyond the tests](#beyond-the-tests-the-lead-leg-block).*
 
 ## TL;DR
 
@@ -21,6 +22,7 @@ High Performance dataset, plus one extension: **how bodyweight should (and shoul
 - **Squat-jump peak power is the dominant input**, consistent with Driveline's statement that it is the metric most correlated with pitch velocity.
 - **Relative (per-kg) strength makes predictions worse.** Held-out R² falls to 0.29 when both power and strength are divided by bodyweight.
 - **Adding bodyweight as a curve helps.** It beats the baseline in 96% of cross-validation fits (partial F(2,534) = 17.6, p = 4×10⁻⁸). At equal strength, heavier athletes throw harder up to about 212 lb, then the effect levels off.
+- **Beyond the tests:** in OBP's separate biomechanics cohort (100 pitchers), a harder front-leg "block" goes with higher velo (peak lead-leg force vs velo, r = 0.36).
 
 ## Background
 
@@ -45,6 +47,11 @@ I loved Driveline's idea: that fitness tests can model the pitching velo an athl
   - Dropped velo < 60 mph (includes 0-mph placeholders).
   - Dropped one physically implausible RSI-mod value.
   - Kept each athlete's **first test only**, so no athlete appears twice.
+- **Pitching biomechanics (lead-leg section only):** OBP `baseball_pitching` summary metrics at the same commit, plus
+  force-plate (1,080 Hz), joint-position and joint-velocity (360 Hz) tables and the raw C3D files (45 markers at
+  360 Hz, 3 force plates at 1,080 Hz) from the `dataset-v1` release, all checksum-verified. 100 pitchers, 411 pitches;
+  8 pitches with no force-plate data are dropped (→ 403).
+  **These are different athletes.** OBP states that the two datasets use different IDs and provides no link between them.
 - **Column note:** OBP includes two hop-test RSI columns. This project uses the flight-time/contact-time ratio,
   which is Driveline's definition. The `jump_height/contact_time` column is a different metric with a different scale.
 
@@ -58,6 +65,16 @@ I loved Driveline's idea: that fitness tests can model the pitching velo an athl
 - **Inference:** overall and partial F-tests, checked with HC3 heteroscedasticity-robust errors, Breusch-Pagan,
   Shapiro-Wilk and Cook's distance.
 - **Bodyweight curve uncertainty:** 1,000 bootstrap refits resampling athletes.
+- **Lead-leg block:** one row per pitcher (pitches averaged), Pearson r with 2,000-resample bootstrap CI, Spearman as a
+  check. Force is shown in the lab frame (+x toward home). OBP stores braking as +x, so the ground's push on the front
+  foot is drawn as (−Fx, +Fy, +Fz). I confirmed this against center-of-mass acceleration from motion capture and
+  against the raw C3D plate forces, and the recomputed force angles match OBP's exactly. Signals are used as OBP
+  provides them, with no further filtering or resampling. OBP had already low-pass filtered them (4th-order
+  Butterworth: 20 Hz for joint signals, 40 Hz for force).
+- **3D renders:** made with pyvista (VTK) from the raw C3D markers and OBP's model joint centers at the frame of peak
+  lead-leg force, drawn as a stick skeleton through the joint centers. The force arrow starts at the center of pressure from the raw plates
+  (weighted by vertical force when the foot straddles two plates). Checks built into the code: C3D markers vs model
+  joint centers (≤ 0.5 mm) and raw plate sum vs processed peak force (≤ 0.2%).
 
 ## Results
 
@@ -86,8 +103,27 @@ past the peak the bootstrap band is wide enough to fit a flat curve, and only 5%
 
 ### F-tests
 All four Driveline inputs remain significant in the final model (all p < 0.05, including with robust errors).
+
+### Beyond the tests: the lead-leg block
+The two pitchers are shown under the headline figure. The full figure, with force over time and the cohort scatter,
+is [`figures/lead_leg_block.png`](figures/lead_leg_block.png).
+
+Force-plate tests measure the capacity an athlete has. They don't show how that capacity gets used on the mound.
+OBP's separate pitching dataset shows one piece of that. Across 100 pitchers, peak lead-leg ground reaction force
+(in bodyweights) tracks velo: **r = 0.36 (95% CI 0.19–0.51)**. It holds in raw newtons after controlling for body mass
+(partial r = 0.39). The rear leg shows no clear relationship (r = 0.16, CI crosses 0).
+
+The two pitchers drawn are college right-handers of the same height (1.85 m), 4 kg apart and 15 mph apart. They were
+selected on level, handedness, mass, height and velo only, not on force. The 94-mph pitcher's front leg pushes harder
+(2.38 vs 2.18× bodyweight), more horizontally (55° vs 64° above horizontal) and earlier (44 vs 26 ms before release).
+By release it has dropped to 1.50×, while the 79-mph pitcher is still near peak (2.10×).
+
+Caveats: these are not the athletes in the headline figure. r = 0.36 means lead-leg force accounts for about 13% of
+the velo differences between pitchers. One pair is an illustration, not evidence.
+
 Full tables: [`results/01_baseline.md`](results/01_baseline.md),
-[`results/02_f_tests.md`](results/02_f_tests.md), [`results/03_bodyweight.md`](results/03_bodyweight.md).
+[`results/02_f_tests.md`](results/02_f_tests.md), [`results/03_bodyweight.md`](results/03_bodyweight.md),
+[`results/04_lead_leg_block.md`](results/04_lead_leg_block.md).
 
 ### Why the recreation scores lower than Driveline's published model
 Likely reasons, none of which can be confirmed from public information:
@@ -102,6 +138,8 @@ Likely reasons, none of which can be confirmed from public information:
 - Residuals are left-skewed: some athletes throw far below prediction, which is exactly the "skill gap" case.
 - OBP column definitions are intentionally undocumented, and the OBP README asks users not to infer formulas.
 - One dataset, with no external validation.
+- The strength-test athletes and the biomechanics pitchers can't be linked, so no single athlete's tests and
+  delivery can be compared directly.
 
 ## Reproduce
 
@@ -109,7 +147,7 @@ Likely reasons, none of which can be confirmed from public information:
 git clone https://github.com/1raync/predicted-velo-recreation.git
 cd predicted-velo-recreation
 pip install -r requirements.txt
-python run_all.py        # downloads data, writes results/ and figures/ (~1-2 min)
+python run_all.py        # downloads ~275 MB of OBP data, writes results/ and figures/ (~2-3 min)
 ```
 
 ## Attribution & licenses
