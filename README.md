@@ -79,7 +79,9 @@ The gap also raised a second question for me. It finds athletes who throw below 
   Layback is also tested as a partial correlation adjusted for velo, mass and height. The whole layback curve is
   compared with [spm1d](https://spm1d.org), a two-sample t-test corrected over time with random field theory. The
   window is −300 to +90 ms around release; each pitch is linearly interpolated onto one 360 Hz grid aligned to
-  release, then averaged per pitcher.
+  release, then averaged per pitcher. As a check on the grouping, a hierarchical (mixed-effects) Bayesian model in
+  [NumPyro](https://num.pyro.ai) refits all 407 pitches with a per-pitcher offset from expected, so pitchers with
+  fewer pitches count less; its offsets replace the OLS residuals and the thirds are re-drawn.
 - **3D renders:** made with pyvista (VTK) from the raw C3D markers and OBP's model joint centers at max layback, drawn
   as a stick skeleton through the joint centers, with the throwing arm in color. Joint centers are used as OBP
   provides them (already low-pass filtered by OBP: 4th-order Butterworth, 20 Hz). Each pitcher is shown with their
@@ -140,6 +142,9 @@ dataset (100 pitchers), I looked for pitchers whose elbow carries more load than
   high-stress group from 144 ms before release through 32 ms after (one significant cluster, p < 10⁻¹³). The two
   pitchers under the headline figure are the pair with the largest gap.
 - **No clear difference:** hip-shoulder separation or pelvis-to-torso timing.
+- **The grouping holds under a Bayesian mixed model:** 96 of 100 pitchers land in the same group (the 4 that move sit
+  at the cutoffs), and all 6 differences above keep q < 0.05. A version robust to outlier pitches (Student-t) agrees
+  on 92 of 100, and the same 6 differences hold.
 
 Caveats: these are not the athletes in the headline figure. Elbow moment is a model-based load estimate, not an
 injury, and OBP has no injury outcomes. The groups are 34 vs 34, mostly college fastballs from one lab. Reasons *why*
@@ -147,7 +152,7 @@ less layback goes with more elbow load are hypotheses, not tested here.
 
 Full tables: [`results/01_baseline.md`](results/01_baseline.md),
 [`results/02_f_tests.md`](results/02_f_tests.md), [`results/03_bodyweight.md`](results/03_bodyweight.md),
-[`results/05_elbow_stress.md`](results/05_elbow_stress.md).
+[`results/05_elbow_stress.md`](results/05_elbow_stress.md), [`results/05b_elbow_bayes.md`](results/05b_elbow_bayes.md).
 
 ### Why the recreation scores lower than Driveline's published model
 Likely reasons, none of which can be confirmed from public information:

@@ -12,6 +12,8 @@ DECIDED: drop the 4 pitches whose event timing is broken (foot plant after relea
 DECIDED: one row per pitcher (pitch means). Within-pitcher variation is small next to between-pitcher variation.
 DECIDED: residual on velo, mass and height, not raw varus. Raw varus tracks body size and velo, so a raw split
   would compare bigger, faster pitchers with smaller, slower ones.
+DECIDED: thirds by rank (bottom/top 34 of 100), not by comparing to quantile(1/3) cutoffs: same groups here, but the
+  interpolated cutoff can land ~1e-15 below the boundary pitcher and silently drop them (seen in s05b's Student-t fit).
 DECIDED: pair = largest residual gap among right-handed HIGH/LOW pairs matched within 1.5 mph, 5 kg and 5 cm at the
   same level. Each pitcher is drawn with the pitch closest to their own median varus moment, frozen at max layback.
 DECIDED: layback curve test on -300..+90 ms around release, in real ms (not time-normalised), so it lines up with
@@ -79,8 +81,10 @@ if __name__ == "__main__":
     a["expected"] = X @ beta
     a["resid"] = a.elbow_varus_moment - a.expected
     r2 = 1 - a.resid.var() / a.elbow_varus_moment.var()
-    lo, hi = a.resid.quantile([1 / 3, 2 / 3])
-    a["grp"] = np.where(a.resid >= hi, "HIGH", np.where(a.resid <= lo, "LOW", "MID"))
+    k3 = (len(a) - 1) // 3 + 1            # pitchers per outer third; = what quantile(1/3) selects, minus its float edge
+    rk = a.resid.rank(method="first")
+    lo, hi = a.resid.sort_values().iloc[[k3 - 1, len(a) - k3]]
+    a["grp"] = np.where(rk > len(a) - k3, "HIGH", np.where(rk <= k3, "LOW", "MID"))
     H, L = a[a.grp == "HIGH"], a[a.grp == "LOW"]
     log.append(f"{len(a)} pitchers; expected varus = {beta[0]:.1f} + {beta[1]:.2f}*mph + {beta[2]:.2f}*kg "
                f"{beta[3]:+.1f}*m (R2 {r2:.2f}, residual SD {a.resid.std():.1f} Nm)")
@@ -113,6 +117,10 @@ if __name__ == "__main__":
     res = lambda y, Z: y - np.column_stack([np.ones(len(y)), Z]) @ np.linalg.lstsq(np.column_stack([np.ones(len(y)), Z]), y, rcond=None)[0]
     Z = a[["pitch_speed_mph", "session_mass_kg", "session_height_m"]].values
     pr_ = stats.pearsonr(res(a.max_shoulder_external_rotation.values, Z), res(a.elbow_varus_moment.values, Z))
+    quart = a.groupby(pd.qcut(a.max_shoulder_external_rotation, 4, labels=["Q1 (least)", "Q2", "Q3", "Q4 (most)"]),
+                      observed=True).agg(n=("resid", "size"), layback_deg=("max_shoulder_external_rotation", "mean"),
+                                         velo_mph=("pitch_speed_mph", "mean"), varus_nm=("elbow_varus_moment", "mean"),
+                                         resid_nm=("resid", "mean")).reset_index(names="layback quartile")
 
     # whole layback curve (shoulder_angle_z = external rotation; its per-pitch max equals OBP's max layback exactly)
     ja = read_zip("joint_angles", usecols=["session_pitch", "time", "BR_time", "shoulder_angle_z"])
@@ -190,6 +198,9 @@ if __name__ == "__main__":
 {md_table(key, 3)}
 
 Layback vs peak varus moment, adjusted for velo, mass and height: partial r = {pr_.statistic:.2f} (p = {pr_.pvalue:.1e}).
+
+## Layback quartiles (all 100 pitchers, per-pitcher means; varus is raw, resid is beyond expected)
+{md_table(quart, 1)}
 
 ## Whole layback curve, HIGH vs LOW (spm1d two-sample t-test, two-tailed, alpha 0.05)
 {chr(10).join(f"- {k}: critical t = {z:.2f}; significant clusters: " + ("; ".join(f"{s:.0f} to {e:.0f} ms ({sg}, p = {p:.1e})" for s, e, p, sg in cl) or "none") for k, (z, cl) in spm.items())}

@@ -32,6 +32,14 @@
 
 Layback vs peak varus moment, adjusted for velo, mass and height: partial r = -0.46 (p = 1.7e-06).
 
+## Layback quartiles (all 100 pitchers, per-pitcher means; varus is raw, resid is beyond expected)
+| layback quartile | n | layback_deg | velo_mph | varus_nm | resid_nm |
+|---|---|---|---|---|---|
+| Q1 (least) | 25 | 155.6 | 81.9 | 119.6 | 9.7 |
+| Q2 | 25 | 166.8 | 84.8 | 113.2 | 0.3 |
+| Q3 | 25 | 172.6 | 86.4 | 112.4 | -3.3 |
+| Q4 (most) | 25 | 180.9 | 85.9 | 102.3 | -6.7 |
+
 ## Whole layback curve, HIGH vs LOW (spm1d two-sample t-test, two-tailed, alpha 0.05)
 - unequal variance (primary): critical t = 3.03; significant clusters: -144 to 32 ms (HIGH lower, p = 8.4e-15)
 - equal variance: critical t = 3.03; significant clusters: -144 to 32 ms (HIGH lower, p = 8.7e-15)

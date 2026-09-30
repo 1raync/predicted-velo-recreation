@@ -7,3 +7,4 @@ matplotlib>=3.8
 ezc3d>=1.5
 pyvista>=0.44
 spm1d>=0.4
+numpyro>=0.22
